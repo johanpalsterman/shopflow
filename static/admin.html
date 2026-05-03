@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopFlow Admin v1.1.0</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--sf-primary:#2563EB;--sf-secondary:#10B981;--sf-dark:#1E293B}
+body{background:#F1F5F9;font-family:'Segoe UI',sans-serif}
+.sidebar{width:240px;background:var(--sf-dark);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column}
+.logo{padding:20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.logo-text{font-size:1.4rem;font-weight:800;color:white}
+.logo-flow{color:#67E8F9}
+.nav-item a{color:rgba(255,255,255,.7);padding:10px 20px;display:flex;align-items:center;gap:10px;text-decoration:none;border-radius:8px;margin:2px 10px;transition:all .2s}
+.nav-item a:hover,.nav-item a.active{background:rgba(255,255,255,.1);color:white}
+.nav-item a i{width:20px}
+.main-content{margin-left:240px;padding:24px}
+.topbar{background:white;border-radius:12px;padding:16px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card-stat{background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.content-card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
+.content-header{padding:16px 24px;border-bottom:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center}
+.zone-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:16px;min-height:200px;background:#F8FAFC;border-radius:8px}
+.zone-cell{border:2px dashed #CBD5E1;border-radius:8px;min-height:60px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.zone-block{border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;cursor:pointer;border:none;color:white;font-size:.8rem;font-weight:600;text-align:center;min-height:60px;transition:all .2s}
+.zone-block:hover{filter:brightness(1.1);transform:scale(1.02)}
+.btn-primary{background:var(--sf-primary);border-color:var(--sf-primary)}
+.section{display:none}.section.active{display:block}
+.product-row:hover{background:#F8FAFC}
+.modal-content{border-radius:16px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.form-label{font-weight:600;font-size:.85rem;color:#374151}
+.color-dot{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;display:inline-block}
+.color-dot.selected{border-color:#1E293B}
+.color-pick{display:flex;gap:8px;flex-wrap:wrap}
+.search-box{border-radius:20px;border:1px solid #E2E8F0;padding:8px 16px}
+.health-bar{height:12px;background:#E2E8F0;border-radius:6px;overflow:hidden}
+.health-fill{height:100%;border-radius:6px;transition:width .5s}
+.upload-zone{border:2px dashed #CBD5E1;border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--sf-primary);background:#EFF6FF}
+.qr-preview{border:1px solid #E2E8F0;border-radius:8px;padding:16px;background:#F8FAFC}
+.insight-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1F5F9}
+.insight-bar{height:6px;background:#E2E8F0;border-radius:3px;flex:1;margin:0 12px}
+.insight-fill{height:100%;border-radius:3px;background:var(--sf-primary)}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-text">Shop<span class="logo-flow">Flow</span></div>
+    <div style="color:rgba(255,255,255,.4);font-size:.75rem">Admin v1.1.0</div>
+  </div>
+  <nav class="flex-fill py-2">
+    <ul class="nav flex-column">
+      <li class="nav-item"><a href="#" class="active" onclick="showSection('dashboard')"><i class="bi bi-grid-1x2"></i>Dashboard</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('store-map')"><i class="bi bi-map"></i>Winkelkaart</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('zones')"><i class="bi bi-boxes"></i>Zones</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('products')"><i class="bi bi-box-seam"></i>Producten</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('import')"><i class="bi bi-file-earmark-spreadsheet"></i>CSV Import</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('qr')"><i class="bi bi-qr-code"></i>QR Codes</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('analytics')"><i class="bi bi-bar-chart-line"></i>Analytics</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('branding')"><i class="bi bi-palette"></i>Branding</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('settings')"><i class="bi bi-gear"></i>Instellingen</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('handleiding')"><i class="bi bi-book"></i>Handleiding</a></li>
+    </ul>
+  </nav>
+  <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="color:rgba(255,255,255,.6);font-size:.8rem" id="sidebar-store">Laden...</div>
+    <button class="btn btn-sm btn-outline-light w-100 mt-2" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i>Uitloggen</button>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="topbar">
+    <div><h5 class="mb-0 fw-bold" id="page-title">Dashboard</h5><small class="text-muted">ShopFlow v1.1.0</small></div>
+    <div class="d-flex gap-2">
+      <a href="/app" target="_blank" class="btn btn-outline-primary btn-sm"><i class="bi bi-phone me-1"></i>Klant App</a>
+      <span class="badge bg-success" style="padding:8px 12px"><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Online</span>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="sec-dashboard" class="section active">
+    <div class="row g-3 mb-4">
+      <div class="col-md-3"><div class="card-stat"><div class="d-flex align-items-center gap-3"><div class="stat-icon bg-primary bg-opacity-10"><i class="bi bi-boxes text-primary"></i></div><div><div class="text-muted" style="font-size:.85rem">Zones</div><div class="fw-bold fs-4" id="stat-zones">-</div></div></div></div></div>
+      <div class="col-md-3"><div class="card-stat"><div class="d-flex align-items-center gap-3"><div class="stat-icon bg-success bg-opacity-10"><i class="bi bi-box-seam text-success"></i></div><div><div class="text-muted" style="font-size:.85rem">Producten</div><div class="fw-bold fs-4" id="stat-products">-</div></div></div></div></div>
+      <div class="col-md-3"><div class="card-stat"><div class="d-flex align-items-center gap-3"><div class="stat-icon bg-warning bg-opacity-10"><i class="bi bi-tools text-warning"></i></div><div><div class="text-muted" style="font-size:.85rem">AI Sessies</div><div class="fw-bold fs-4" id="stat-repairs">-</div></div></div></div></div>
+      <div class="col-md-3"><div class="card-stat"><div class="d-flex align-items-center gap-3"><div class="stat-icon bg-info bg-opacity-10"><i class="bi bi-heart-pulse text-info"></i></div><div><div class="text-muted" style="font-size:.85rem">Catalogus score</div><div class="fw-bold fs-4" id="stat-health">-</div></div></div></div></div>
+    </div>
+    <div class="row g-3 mb-4">
+      <div class="col-md-8">
+        <div class="content-card">
+          <div class="content-header"><div class="fw-bold">Snel starten</div></div>
+          <div class="p-4">
+            <div class="row g-3">
+              <div class="col-4"><div class="p-3 rounded-3 bg-primary bg-opacity-10 text-center" style="cursor:pointer" onclick="showSection('import')"><i class="bi bi-file-earmark-spreadsheet fs-2 text-primary mb-2 d-block"></i><div class="fw-bold">CSV Import</div><small class="text-muted">Bulk producten laden</small></div></div>
+              <div class="col-4"><div class="p-3 rounded-3 bg-success bg-opacity-10 text-center" style="cursor:pointer" onclick="showSection('qr')"><i class="bi bi-qr-code fs-2 text-success mb-2 d-block"></i><div class="fw-bold">QR Codes</div><small class="text-muted">Per zone afdrukken</small></div></div>
+              <div class="col-4"><div class="p-3 rounded-3 bg-warning bg-opacity-10 text-center" style="cursor:pointer" onclick="showSection('analytics')"><i class="bi bi-bar-chart-line fs-2 text-warning mb-2 d-block"></i><div class="fw-bold">Analytics</div><small class="text-muted">Inzichten en trends</small></div></div>
+            </div>
+            <div class="mt-3 p-3 bg-light rounded-3">
+              <strong class="d-block mb-2"><i class="bi bi-share text-primary me-1"></i>Klant-URL</strong>
+              <div class="input-group"><input type="text" class="form-control" id="customer-url" readonly><button class="btn btn-outline-primary" onclick="copyUrl()"><i class="bi bi-clipboard"></i></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="content-card">
+          <div class="content-header"><div class="fw-bold">Catalogus gezondheid</div></div>
+          <div class="p-4 text-center">
+            <div style="font-size:3rem;font-weight:800;color:var(--sf-primary)" id="health-score-big">-</div>
+            <div class="text-muted mb-2">/100</div>
+            <div class="health-bar mb-2"><div class="health-fill bg-primary" id="health-bar" style="width:0%"></div></div>
+            <small class="text-muted" id="health-detail">Laden...</small>
+            <div class="mt-3"><button class="btn btn-sm btn-outline-warning" onclick="showSection('analytics')"><i class="bi bi-wrench me-1"></i>Verbeter</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORE MAP -->
+  <div id="sec-store-map" class="section">
+    <div class="content-card">
+      <div class="content-header"><div class="fw-bold"><i class="bi bi-map me-2"></i>Winkelplattegrond</div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-success btn-sm" onclick="showSection('qr')"><i class="bi bi-qr-code me-1"></i>QR afdrukken</button>
+          <button class="btn btn-primary btn-sm" onclick="showSection('zones')"><i class="bi bi-plus me-1"></i>Zone toevoegen</button>
+        </div>
+      </div>
+      <div class="p-3"><div id="zone-legend" class="d-flex flex-wrap gap-2 mb-2"></div><div id="store-map-grid" class="zone-grid"></div></div>
+    </div>
+  </div>
+
+  <!-- ZONES -->
+  <div id="sec-zones" class="section">
+    <div class="content-card">
+      <div class="content-header"><div class="fw-bold"><i class="bi bi-boxes me-2"></i>Zones</div><button class="btn btn-primary btn-sm" onclick="openZoneModal()"><i class="bi bi-plus me-1"></i>Nieuwe Zone</button></div>
+      <div class="p-3"><div id="zones-list" class="row g-3"></div></div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="sec-products" class="section">
+    <div class="content-card">
+      <div class="content-header"><div class="fw-bold"><i class="bi bi-box-seam me-2"></i>Producten</div>
+        <div class="d-flex gap-2">
+          <input type="text" class="form-control form-control-sm search-box" placeholder="Zoeken..." id="prod-search" oninput="filterProducts()" style="width:200px">
+          <button class="btn btn-outline-success btn-sm" onclick="showSection('import')"><i class="bi bi-upload me-1"></i>CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openProductModal()"><i class="bi bi-plus me-1"></i>Nieuw</button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0"><thead class="table-light"><tr><th>Product</th><th>Zone</th><th>Locatie</th><th>Prijs</th><th>Status</th><th>Acties</th></tr></thead><tbody id="products-table"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV IMPORT -->
+  <div id="sec-import" class="section">
+    <div class="row g-3">
+      <div class="col-md-7">
+        <div class="content-card">
+          <div class="content-header"><div class="fw-bold"><i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV Import</div></div>
+          <div class="p-4">
+            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+              <i class="bi bi-cloud-upload fs-1 text-primary mb-2 d-block"></i>
+              <div class="fw-bold">Klik of sleep uw CSV hier</div>
+              <div class="text-muted small mt-1">Max. 10.000 producten per import</div>
+              <input type="file" id="csv-file" accept=".csv" class="d-none" onchange="handleFile(this)">
+            </div>
+            <div id="import-result" class="d-none mt-3"></div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-primary" id="import-btn" onclick="doImport()" disabled><i class="bi bi-upload me-1"></i>Importeer</button>
+              <button class="btn btn-outline-secondary" onclick="downloadTemplate()"><i class="bi bi-download me-1"></i>Template</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div class="content-card">
+          <div class="content-header"><div class="fw-bold">CSV Kolommen</div></div>
+          <div class="p-3">
+            <table class="table table-sm">
+              <thead><tr><th>Kolom</th><th>Vereist</th><th>Voorbeeld</th></tr></thead>
+              <tbody>
+                <tr><td><code>name</code></td><td><span class="badge bg-danger">Ja</span></td><td>Muurverf Wit</td></tr>
+                <tr><td><code>barcode</code></td><td><span class="badge bg-secondary">Nee</span></td><td>5410123456</td></tr>
+                <tr><td><code>price</code></td><td><span class="badge bg-secondary">Nee</span></td><td>24.99</td></tr>
+                <tr><td><code>category</code></td><td><span class="badge bg-secondary">Nee</span></td><td>Verf</td></tr>
+                <tr><td><code>tags</code></td><td><span class="badge bg-secondary">Nee</span></td><td>verf,muur,wit</td></tr>
+                <tr><td><code>zone_name</code></td><td><span class="badge bg-secondary">Nee</span></td><td>Afdeling Verf</td></tr>
+                <tr><td><code>aisle</code></td><td><span class="badge bg-secondary">Nee</span></td><td>A1</td></tr>
+                <tr><td><code>shelf</code></td><td><span class="badge bg-secondary">Nee</span></td><td>3</td></tr>
+              </tbody>
+            </table>
+            <div class="alert alert-info py-2 small"><i class="bi bi-info-circle me-1"></i>zone_name moet exact overeenkomen met een bestaande zone</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR CODES -->
+  <div id="sec-qr" class="section">
+    <div class="content-card">
+      <div class="content-header"><div class="fw-bold"><i class="bi bi-qr-code me-2"></i>QR Codes</div>
+        <button class="btn btn-primary btn-sm" onclick="printAllZones()"><i class="bi bi-printer me-1"></i>Alle zones afdrukken</button>
+      </div>
+      <div class="p-4">
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="qr-preview">
+              <div class="fw-bold mb-2"><i class="bi bi-shop me-1"></i>Winkel QR (ingang)</div>
+              <p class="text-muted small">Hang aan de ingang. Klanten scannen om de app te openen.</p>
+              <button class="btn btn-outline-primary w-100" onclick="openStoreQR()"><i class="bi bi-eye me-1"></i>Bekijk & afdrukken</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="qr-preview">
+              <div class="fw-bold mb-2"><i class="bi bi-boxes me-1"></i>QR per zone</div>
+              <div id="zones-qr-list" class="d-flex flex-column gap-2 mt-2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-success"><i class="bi bi-lightbulb me-2"></i><strong>Tip:</strong> Lamineer de QR codes en hang ze bij de ingang en bij elke afdeling op ooghoogte.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="sec-analytics" class="section">
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><div class="card-stat"><div class="text-muted small mb-1">Sessies deze week</div><div class="fw-bold fs-3" id="an-week">-</div></div></div>
+      <div class="col-md-4"><div class="card-stat"><div class="text-muted small mb-1">Sessies deze maand</div><div class="fw-bold fs-3" id="an-month">-</div></div></div>
+      <div class="col-md-4"><div class="card-stat"><div class="text-muted small mb-1">Totaal sessies</div><div class="fw-bold fs-3" id="an-total">-</div></div></div>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-8">
+        <div class="content-card"><div class="content-header"><div class="fw-bold">Sessies per dag (14 dagen)</div></div><div class="p-3"><canvas id="trend-chart" height="120"></canvas></div></div>
+      </div>
+      <div class="col-md-4">
+        <div class="content-card"><div class="content-header"><div class="fw-bold">Top zones</div></div><div class="p-3" id="top-zones-list"></div></div>
+      </div>
+      <div class="col-md-6">
+        <div class="content-card">
+          <div class="content-header"><div class="fw-bold">Meest gemiste producten</div><span class="badge bg-danger">Niet in catalogus</span></div>
+          <div class="p-3" id="missing-products-list"><div class="text-muted small">Nog geen data beschikbaar.</div></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="content-card">
+          <div class="content-header"><div class="fw-bold">Catalogus aandachtspunten</div><button class="btn btn-sm btn-outline-secondary" onclick="loadCatalogHealth()"><i class="bi bi-arrow-clockwise"></i></button></div>
+          <div class="p-3" id="catalog-issues-list"><div class="text-muted small">Laden...</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRANDING -->
+  <div id="sec-branding" class="section">
+    <div class="content-card">
+      <div class="content-header"><div class="fw-bold"><i class="bi bi-palette me-2"></i>Winkel Branding</div></div>
+      <div class="p-4">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h6 class="fw-bold mb-3">Kleuren en Logo</h6>
+            <div class="mb-3"><label class="form-label">Primaire kleur</label><div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="brand-primary" value="#2563EB" style="width:60px;height:40px" oninput="document.getElementById('brand-primary-hex').value=this.value"><input type="text" class="form-control" id="brand-primary-hex" value="#2563EB" style="max-width:120px"></div></div>
+            <div class="mb-3"><label class="form-label">Secundaire kleur</label><div class="d-flex align-items-center gap-3"><input type="color" class="form-control form-control-color" id="brand-secondary" value="#10B981" style="width:60px;height:40px" oninput="document.getElementById('brand-secondary-hex').value=this.value"><input type="text" class="form-control" id="brand-secondary-hex" value="#10B981" style="max-width:120px"></div></div>
+            <div class="mb-3"><label class="form-label">Logo URL</label><input type="url" class="form-control" id="brand-logo" placeholder="https://uwwinkel.be/logo.png"></div>
+            <div class="mb-3"><label class="form-label">Tagline</label><input type="text" class="form-control" id="brand-tagline" placeholder="Uw doe-het-zelf partner"></div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-bold mb-3">Taal en Berichten</h6>
+            <div class="mb-3"><label class="form-label">Standaard taal</label><select class="form-select" id="brand-lang"><option value="nl">Nederlands</option><option value="fr">Francais</option></select></div>
+            <div class="mb-3"><label class="form-label">Welkomstbericht (NL)</label><textarea class="form-control" id="brand-welcome-nl" rows="3"></textarea></div>
+            <div class="mb-3"><label class="form-label">Welkomstbericht (FR)</label><textarea class="form-control" id="brand-welcome-fr" rows="3"></textarea></div>
+            <div class="form-check mb-3"><input type="checkbox" class="form-check-input" id="brand-powered-by" checked><label class="form-check-label">Toon "Powered by ShopFlow"</label></div>
+          </div>
+          <div class="col-12">
+            <div class="p-3 rounded-3 mb-3 bg-light" id="brand-preview" style="border-left:4px solid #2563EB"><strong>Preview tagline:</strong> <span id="preview-tagline">-</span></div>
+            <button class="btn btn-primary" onclick="saveBranding()"><i class="bi bi-check me-2"></i>Branding opslaan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HANDLEIDING -->
+  <div id="sec-handleiding" class="section">
+    <div class="content-card mb-4">
+      <div class="content-header">
+        <div class="fw-bold"><i class="bi bi-book me-2"></i>Handleiding voor Winkels — ShopFlow v1.0.0</div>
+        <span class="badge bg-primary">WishFlow Suite</span>
+      </div>
+      <div class="p-4" style="max-width:860px">
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <a href="#hdl-1" class="btn btn-outline-primary btn-sm">1. Wat is ShopFlow?</a>
+          <a href="#hdl-2" class="btn btn-outline-primary btn-sm">2. Registreren</a>
+          <a href="#hdl-3" class="btn btn-outline-primary btn-sm">3. Admin Dashboard</a>
+          <a href="#hdl-4" class="btn btn-outline-primary btn-sm">4. Zones</a>
+          <a href="#hdl-5" class="btn btn-outline-primary btn-sm">5. Producten</a>
+          <a href="#hdl-6" class="btn btn-outline-primary btn-sm">6. Klant-app delen</a>
+          <a href="#hdl-7" class="btn btn-outline-primary btn-sm">7. AI Gidsen</a>
+          <a href="#hdl-8" class="btn btn-outline-primary btn-sm">8. FAQ</a>
+        </div>
+
+        <h5 id="hdl-1" class="fw-bold border-bottom pb-2 mb-3" style="color:var(--sf-primary)"><i class="bi bi-1-circle me-2"></i>Wat is ShopFlow?</h5>
+        <p>ShopFlow is een slim platform dat twee problemen oplost:</p>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="p-3 rounded-3 bg-primary bg-opacity-10 h-100">
+              <div class="fw-bold mb-2"><i class="bi bi-map text-primary me-2"></i>Klant vindt producten niet</div>
+              <p class="text-muted small mb-0">Klanten lopen verloren in uw winkel. Met ShopFlow heeft elke klant een digitale plattegrond op zijn smartphone, inclusief de exacte locatie van elk product.</p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 rounded-3 bg-success bg-opacity-10 h-100">
+              <div class="fw-bold mb-2"><i class="bi bi-robot text-success me-2"></i>Klant weet niet wat hij nodig heeft</div>
+              <p class="text-muted small mb-0">ShopFlow's AI genereert een stap-voor-stap herstelgids én toont automatisch welke producten beschikbaar zijn in uw winkel — met de exacte locatie.</p>
+            </div>
+          </div>
+        </div>
+
+        <h5 id="hdl-2" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-2-circle me-2"></i>Aan de slag — Uw winkel registreren</h5>
+        <ol class="mb-3">
+          <li class="mb-2">Ga naar de ShopFlow URL en klik op <strong>Registreer</strong></li>
+          <li class="mb-2">Vul in: winkel naam, e-mail, wachtwoord (min. 12 tekens) en optioneel adres</li>
+          <li class="mb-2">Klik op <strong>"Registreer Winkel"</strong> — uw unieke winkel-URL wordt automatisch aangemaakt</li>
+          <li>U wordt automatisch doorgestuurd naar het admin dashboard</li>
+        </ol>
+        <div class="alert alert-info py-2 small"><i class="bi bi-info-circle me-1"></i>Uw klanten bereiken de app via <code>/app?store=uw-winkel-naam</code></div>
+
+        <h5 id="hdl-3" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-3-circle me-2"></i>Admin Dashboard</h5>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light"><tr><th>Sectie</th><th>Wat kunt u hier doen?</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Dashboard</strong></td><td>Statistieken, klant-URL kopiëren, snelkoppelingen</td></tr>
+              <tr><td><strong>Winkelkaart</strong></td><td>Visueel overzicht van uw zones</td></tr>
+              <tr><td><strong>Zones</strong></td><td>Zones aanmaken, bewerken en verwijderen</td></tr>
+              <tr><td><strong>Producten</strong></td><td>Producten toevoegen, zoeken en beheren</td></tr>
+              <tr><td><strong>CSV Import</strong></td><td>Bulk producten laden via spreadsheet</td></tr>
+              <tr><td><strong>QR Codes</strong></td><td>QR codes per zone afdrukken</td></tr>
+              <tr><td><strong>Analytics</strong></td><td>Inzichten en AI-sessie statistieken</td></tr>
+              <tr><td><strong>Branding</strong></td><td>Kleuren, logo en welkomstbericht instellen</td></tr>
+              <tr><td><strong>Instellingen</strong></td><td>Winkelgegevens bewerken</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h5 id="hdl-4" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-4-circle me-2"></i>Zones aanmaken (winkelkaart)</h5>
+        <p>Zones zijn de afdelingen van uw winkel, bijv. "Verf", "Sanitair", "Electra".</p>
+        <ol class="mb-3">
+          <li class="mb-2">Klik op <strong>Zones</strong> → <strong>Nieuwe Zone</strong></li>
+          <li class="mb-2">Vul in: naam, beschrijving, kleur en grid positie</li>
+          <li>Grid X = kolom (0 = links, 5 = rechts) &bull; Grid Y = rij (0 = boven, 7 = onder)</li>
+        </ol>
+        <div class="alert alert-success py-2 small"><i class="bi bi-lightbulb me-1"></i><strong>Tip:</strong> Begin met de grote afdelingen. Een gemiddelde winkel heeft 4 tot 10 zones.</div>
+
+        <h5 id="hdl-5" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-5-circle me-2"></i>Producten beheren</h5>
+        <p>Via <strong>Producten → Nieuw</strong> voegt u manueel een product toe. Via <strong>CSV Import</strong> laadt u meerdere producten tegelijk.</p>
+        <div class="mb-3">
+          <div class="fw-bold small mb-2">Aanbevolen tags per producttype:</div>
+          <table class="table table-sm table-bordered small">
+            <thead class="table-light"><tr><th>Product</th><th>Tags</th></tr></thead>
+            <tbody>
+              <tr><td>Muurverf wit 10L</td><td>verf, muur, wit, schilderen, primer, latex</td></tr>
+              <tr><td>Kraan rubber pakking</td><td>kraan, waterleiding, pakking, rubber, afdichting, druppel</td></tr>
+              <tr><td>Silicone kit wit</td><td>kit, silicone, afdichten, voeg, badkamer, keuken</td></tr>
+              <tr><td>Koperen verbinding 15mm</td><td>loodgieterswerk, waterleiding, koper, verbinding, fitting</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="alert alert-warning py-2 small"><i class="bi bi-exclamation-triangle me-1"></i><strong>Waarom zijn tags belangrijk?</strong> De AI gebruikt tags om producten te koppelen aan reparatieproblemen. Hoe meer relevante tags, hoe beter de matches.</div>
+
+        <h5 id="hdl-6" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-6-circle me-2"></i>De klant-app delen</h5>
+        <p>Op het <strong>Dashboard</strong> ziet u de klant-URL. Deel deze via:</p>
+        <ul class="mb-3">
+          <li>Een QR-code aan de ingang van uw winkel (via QR Codes sectie)</li>
+          <li>Uw website of sociale media</li>
+          <li>Een flyer of affiche</li>
+        </ul>
+        <div class="alert alert-info py-2 small"><i class="bi bi-info-circle me-1"></i>Klanten hoeven zich <strong>niet te registreren</strong> — ze openen de app direct.</div>
+
+        <h5 id="hdl-7" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-7-circle me-2"></i>AI reparatiegidsen — Hoe werkt het?</h5>
+        <div class="row g-3 mb-3">
+          <div class="col-md-3 text-center"><div class="rounded-3 bg-light p-3"><i class="bi bi-chat-text fs-2 text-primary d-block mb-2"></i><div class="small fw-bold">1. Klant beschrijft probleem</div></div></div>
+          <div class="col-md-3 text-center"><div class="rounded-3 bg-light p-3"><i class="bi bi-stars fs-2 text-warning d-block mb-2"></i><div class="small fw-bold">2. AI genereert gids</div></div></div>
+          <div class="col-md-3 text-center"><div class="rounded-3 bg-light p-3"><i class="bi bi-search fs-2 text-success d-block mb-2"></i><div class="small fw-bold">3. Producten gezocht in catalogus</div></div></div>
+          <div class="col-md-3 text-center"><div class="rounded-3 bg-light p-3"><i class="bi bi-bag-check fs-2 text-info d-block mb-2"></i><div class="small fw-bold">4. Klant loopt winkel door</div></div></div>
+        </div>
+        <div class="alert alert-primary py-2 small"><i class="bi bi-info-circle me-1"></i>AI model: Claude 3.5 Sonnet via AWS Bedrock. Zonder AWS keys werkt de app met een vereenvoudigde fallback-gids.</div>
+
+        <h5 id="hdl-8" class="fw-bold border-bottom pb-2 mb-3 mt-4" style="color:var(--sf-primary)"><i class="bi bi-8-circle me-2"></i>Veelgestelde vragen</h5>
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item border mb-2 rounded-3 overflow-hidden">
+            <h2 class="accordion-header"><button class="accordion-button collapsed fw-bold small" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">Moet de klant een account aanmaken?</button></h2>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body small">Nee. Klanten gebruiken de app zonder registratie.</div></div>
+          </div>
+          <div class="accordion-item border mb-2 rounded-3 overflow-hidden">
+            <h2 class="accordion-header"><button class="accordion-button collapsed fw-bold small" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">Hoeveel producten kan ik toevoegen?</button></h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body small">Er is geen limiet in de huidige versie.</div></div>
+          </div>
+          <div class="accordion-item border mb-2 rounded-3 overflow-hidden">
+            <h2 class="accordion-header"><button class="accordion-button collapsed fw-bold small" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">Wat als een product niet gevonden wordt door de AI?</button></h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body small">Voeg meer tags toe aan uw producten. Als bijv. "kit" gezocht wordt maar uw product heet "Silicone afdichtingskit", voeg dan <code>kit, silicone, afdichten</code> toe als tags.</div></div>
+          </div>
+          <div class="accordion-item border mb-2 rounded-3 overflow-hidden">
+            <h2 class="accordion-header"><button class="accordion-button collapsed fw-bold small" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">Werkt de barcode scanner op alle telefoons?</button></h2>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body small">De scanner werkt op Android en iOS via een moderne browser (Chrome, Safari). Een HTTPS-verbinding is vereist voor camera-toegang.</div></div>
+          </div>
+          <div class="accordion-item border rounded-3 overflow-hidden">
+            <h2 class="accordion-header"><button class="accordion-button collapsed fw-bold small" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">Werkt de AI zonder internet?</button></h2>
+            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body small">Nee, de AI vereist een internetverbinding. De winkelkaart en productenlijst werken ook offline als de browser cache actief is.</div></div>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 rounded-3 bg-light text-muted small text-center">
+          ShopFlow v1.0.0 — WishFlow Suite — Johan's Projects<br>
+          Vragen of problemen? Neem contact op via het WishFlow Control Center.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="sec-settings" class="section">
+    <div class="content-card">
+      <div class="content-header"><div class="fw-bold">Instellingen</div></div>
+      <div class="p-4"><div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Winkel naam</label><input type="text" class="form-control" id="set-name"></div>
+        <div class="col-md-6"><label class="form-label">Adres</label><input type="text" class="form-control" id="set-address"></div>
+        <div class="col-md-6"><label class="form-label">Telefoon</label><input type="text" class="form-control" id="set-phone"></div>
+        <div class="col-12"><button class="btn btn-primary" onclick="saveSettings()"><i class="bi bi-check me-2"></i>Opslaan</button></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Zone Modal -->
+<div class="modal fade" id="zoneModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title fw-bold" id="zone-modal-title">Nieuwe Zone</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body">
+    <input type="hidden" id="zone-id">
+    <div class="mb-3"><label class="form-label">Zone naam *</label><input type="text" class="form-control" id="zone-name"></div>
+    <div class="mb-3"><label class="form-label">Beschrijving</label><input type="text" class="form-control" id="zone-desc"></div>
+    <div class="mb-3"><label class="form-label">Kleur</label><div class="color-pick" id="color-picker"></div></div>
+    <div class="row g-2">
+      <div class="col-6"><label class="form-label">Grid X</label><input type="number" class="form-control" id="zone-x" value="0" min="0" max="5"></div>
+      <div class="col-6"><label class="form-label">Grid Y</label><input type="number" class="form-control" id="zone-y" value="0" min="0" max="9"></div>
+      <div class="col-6"><label class="form-label">Breedte</label><input type="number" class="form-control" id="zone-w" value="2" min="1" max="6"></div>
+      <div class="col-6"><label class="form-label">Hoogte</label><input type="number" class="form-control" id="zone-h" value="2" min="1" max="4"></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuleer</button>
+    <button class="btn btn-primary" onclick="saveZone()"><i class="bi bi-check me-1"></i>Opslaan</button>
+  </div>
+</div></div></div>
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title fw-bold" id="prod-modal-title">Nieuw Product</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><div class="row g-3">
+    <input type="hidden" id="prod-id">
+    <div class="col-md-8"><label class="form-label">Naam *</label><input type="text" class="form-control" id="prod-name"></div>
+    <div class="col-md-4"><label class="form-label">Prijs (EUR)</label><input type="number" class="form-control" id="prod-price" step="0.01" value="0"></div>
+    <div class="col-md-6"><label class="form-label">Barcode</label><input type="text" class="form-control" id="prod-barcode"></div>
+    <div class="col-md-6"><label class="form-label">Zone</label><select class="form-select" id="prod-zone"></select></div>
+    <div class="col-md-4"><label class="form-label">Gang</label><input type="text" class="form-control" id="prod-aisle"></div>
+    <div class="col-md-4"><label class="form-label">Rek</label><input type="text" class="form-control" id="prod-shelf"></div>
+    <div class="col-md-4"><label class="form-label">Categorie</label><input type="text" class="form-control" id="prod-category"></div>
+    <div class="col-12"><label class="form-label">Tags (komma gescheiden)</label><input type="text" class="form-control" id="prod-tags" placeholder="verf, muur, wit"></div>
+    <div class="col-12"><label class="form-label">Beschrijving</label><textarea class="form-control" id="prod-desc" rows="2"></textarea></div>
+    <div class="col-12"><label class="form-label">Locatie notities</label><input type="text" class="form-control" id="prod-notes"></div>
+  </div></div>
+  <div class="modal-footer">
+    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuleer</button>
+    <button class="btn btn-primary" onclick="saveProduct()"><i class="bi bi-check me-1"></i>Opslaan</button>
+  </div>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const API='';
+const TOKEN=localStorage.getItem('sf_token');
+if(!TOKEN)window.location.href='/';
+const COLORS=['#2563EB','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#84CC16','#F97316','#EC4899','#6366F1'];
+let selectedColor=COLORS[0],zones=[],products=[],storeSlug='',trendChart=null,csvFile=null;
+const H=()=>({'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'});
+
+async function init(){
+  try{
+    const store=await(await fetch(API+'/api/stores/me',{headers:H()})).json();
+    if(!store.id){logout();return;}
+    storeSlug=store.slug;
+    document.getElementById('sidebar-store').textContent=store.name;
+    document.getElementById('set-name').value=store.name||'';
+    document.getElementById('set-address').value=store.address||'';
+    document.getElementById('set-phone').value=store.phone||'';
+    document.getElementById('customer-url').value=window.location.origin+'/app?store='+store.slug;
+    const stats=await(await fetch(API+'/api/stores/stats',{headers:H()})).json();
+    document.getElementById('stat-zones').textContent=stats.zones;
+    document.getElementById('stat-products').textContent=stats.products;
+    document.getElementById('stat-repairs').textContent=stats.repair_sessions;
+    await loadZones();await loadProducts();await loadAnalytics();await loadBranding();
+  }catch(e){console.error(e);}
+}
+
+async function loadZones(){
+  zones=await(await fetch(API+'/api/zones/',{headers:H()})).json();
+  renderZones();renderMap();populateZoneSelect();renderQRSection();
+}
+
+async function loadProducts(){
+  products=await(await fetch(API+'/api/products/',{headers:H()})).json();
+  renderProducts();
+}
+
+async function loadAnalytics(){
+  try{
+    const data=await(await fetch(API+'/api/analytics/summary',{headers:H()})).json();
+    document.getElementById('an-week').textContent=data.sessions.this_week;
+    document.getElementById('an-month').textContent=data.sessions.this_month;
+    document.getElementById('an-total').textContent=data.sessions.total;
+    const score=data.catalog.health_score;
+    document.getElementById('stat-health').textContent=score+'%';
+    document.getElementById('health-score-big').textContent=score;
+    document.getElementById('health-bar').style.width=score+'%';
+    document.getElementById('health-bar').className='health-fill '+(score>=70?'bg-success':score>=40?'bg-warning':'bg-danger');
+    document.getElementById('health-detail').textContent=data.catalog.untagged_products+' zonder tags, '+data.catalog.unzoned_products+' zonder zone';
+    const trend=data.sessions.daily_trend;
+    const ctx=document.getElementById('trend-chart').getContext('2d');
+    if(trendChart)trendChart.destroy();
+    trendChart=new Chart(ctx,{type:'line',data:{labels:trend.length?trend.map(t=>t.day):['Geen data'],datasets:[{label:'Sessies',data:trend.length?trend.map(t=>t.count):[0],borderColor:'#2563EB',backgroundColor:'rgba(37,99,235,.1)',fill:true,tension:0.4,pointRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+    const maxZ=Math.max(...data.catalog.top_zones.map(z=>z.product_count),1);
+    document.getElementById('top-zones-list').innerHTML=data.catalog.top_zones.map(z=>`<div class="insight-row"><span style="width:80px;font-size:.85rem">${z.name}</span><div class="insight-bar"><div class="insight-fill" style="width:${(z.product_count/maxZ)*100}%;background:${z.color}"></div></div><span style="font-size:.85rem;font-weight:700">${z.product_count}</span></div>`).join('')||'<div class="text-muted small">Geen data</div>';
+    const missing=data.ai_insights.top_missing_products;
+    const maxM=Math.max(...missing.map(m=>m.count),1);
+    document.getElementById('missing-products-list').innerHTML=missing.length?missing.map(m=>`<div class="insight-row"><span style="flex:1;font-size:.85rem">${m.name}</span><div class="insight-bar" style="flex:.5"><div class="insight-fill" style="width:${(m.count/maxM)*100}%;background:#EF4444"></div></div><span class="badge bg-danger ms-2">${m.count}x</span></div>`).join(''):'<div class="text-muted small">Nog geen gemiste producten.</div>';
+    await loadCatalogHealth();
+  }catch(e){console.error('Analytics:',e);}
+}
+
+async function loadCatalogHealth(){
+  try{
+    const data=await(await fetch(API+'/api/analytics/catalog-health',{headers:H()})).json();
+    const el=document.getElementById('catalog-issues-list');
+    if(data.products_with_issues===0){el.innerHTML='<div class="alert alert-success py-2 small"><i class="bi bi-check-circle me-1"></i>Alle producten volledig ingesteld!</div>';return;}
+    el.innerHTML=`<div class="text-muted small mb-2">${data.products_with_issues} van ${data.total_products} hebben aandachtspunten:</div>`+data.items.slice(0,8).map(p=>`<div class="d-flex align-items-start gap-2 mb-2"><i class="bi bi-exclamation-triangle text-warning mt-1"></i><div><div style="font-size:.85rem;font-weight:600">${p.name}</div>${p.issues.map(i=>`<span class="badge bg-warning bg-opacity-20 text-warning me-1" style="font-size:.7rem">${i}</span>`).join('')}</div></div>`).join('');
+  }catch(e){}
+}
+
+async function loadBranding(){
+  try{
+    const b=await(await fetch(API+'/api/branding/',{headers:H()})).json();
+    document.getElementById('brand-primary').value=b.primary_color||'#2563EB';
+    document.getElementById('brand-primary-hex').value=b.primary_color||'#2563EB';
+    document.getElementById('brand-secondary').value=b.secondary_color||'#10B981';
+    document.getElementById('brand-secondary-hex').value=b.secondary_color||'#10B981';
+    document.getElementById('brand-logo').value=b.logo_url||'';
+    document.getElementById('brand-tagline').value=b.store_tagline||'';
+    document.getElementById('brand-lang').value=b.language_default||'nl';
+    document.getElementById('brand-welcome-nl').value=b.welcome_message_nl||'';
+    document.getElementById('brand-welcome-fr').value=b.welcome_message_fr||'';
+    document.getElementById('brand-powered-by').checked=b.show_powered_by!=='false';
+    document.getElementById('preview-tagline').textContent=b.store_tagline||'Uw doe-het-zelf partner';
+    document.getElementById('brand-preview').style.borderLeftColor=b.primary_color||'#2563EB';
+  }catch(e){}
+}
+
+async function saveBranding(){
+  const r=await fetch(API+'/api/branding/',{method:'PUT',headers:H(),body:JSON.stringify({primary_color:document.getElementById('brand-primary').value,secondary_color:document.getElementById('brand-secondary').value,logo_url:document.getElementById('brand-logo').value,store_tagline:document.getElementById('brand-tagline').value,language_default:document.getElementById('brand-lang').value,welcome_message_nl:document.getElementById('brand-welcome-nl').value,welcome_message_fr:document.getElementById('brand-welcome-fr').value,show_powered_by:document.getElementById('brand-powered-by').checked})});
+  if(r.ok){alert('Branding opgeslagen!');await loadBranding();}
+}
+
+function renderQRSection(){
+  const el=document.getElementById('zones-qr-list');
+  el.innerHTML=zones.map(z=>`<div class="d-flex align-items-center justify-content-between"><div class="d-flex align-items-center gap-2"><div style="width:12px;height:12px;border-radius:50%;background:${z.color}"></div><span style="font-size:.9rem">${z.name}</span></div><button class="btn btn-sm btn-outline-primary" onclick="openZoneQR(${z.id})"><i class="bi bi-qr-code me-1"></i>Print</button></div>`).join('')||'<div class="text-muted small">Nog geen zones</div>';
+}
+
+function openStoreQR(){window.open(API+'/api/qr/store/'+storeSlug,'_blank');}
+function openZoneQR(zoneId){window.open(API+'/api/qr/zone/'+zoneId+'?Authorization='+TOKEN,'_blank');}
+function printAllZones(){window.open(API+'/api/qr/all-zones/'+storeSlug,'_blank');}
+
+function dragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('dragover');}
+function dragLeave(e){document.getElementById('upload-zone').classList.remove('dragover');}
+function dropFile(e){e.preventDefault();dragLeave(e);const f=e.dataTransfer.files[0];if(f)setFile(f);}
+function handleFile(input){if(input.files[0])setFile(input.files[0]);}
+function setFile(file){csvFile=file;document.getElementById('upload-zone').innerHTML=`<i class="bi bi-file-earmark-check fs-1 text-success mb-2 d-block"></i><div class="fw-bold text-success">${file.name}</div><div class="text-muted small mt-1">${(file.size/1024).toFixed(1)} KB</div>`;document.getElementById('import-btn').disabled=false;}
+
+async function doImport(){
+  if(!csvFile)return;
+  const btn=document.getElementById('import-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Importeren...';
+  const form=new FormData();form.append('file',csvFile);
+  try{
+    const r=await fetch(API+'/api/import/products',{method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:form});
+    const data=await r.json();
+    const el=document.getElementById('import-result');el.classList.remove('d-none');
+    el.innerHTML=r.ok?`<div class="alert alert-success"><i class="bi bi-check-circle me-2"></i><strong>${data.imported} producten geimporteerd</strong>${data.skipped?', '+data.skipped+' overgeslagen':''}.${data.errors.length?'<br><small>'+data.errors.join(', ')+'</small>':''}</div>`:`<div class="alert alert-danger">${data.detail}</div>`;
+    if(r.ok){await loadProducts();await loadAnalytics();}
+  }catch(e){document.getElementById('import-result').innerHTML=`<div class="alert alert-danger">${e.message}</div>`;document.getElementById('import-result').classList.remove('d-none');}
+  btn.disabled=false;btn.innerHTML='<i class="bi bi-upload me-1"></i>Importeer';
+}
+function downloadTemplate(){window.open(API+'/api/import/template','_blank');}
+
+function renderZones(){
+  const el=document.getElementById('zones-list');
+  el.innerHTML=zones.length===0?'<div class="col-12 text-center text-muted p-4"><i class="bi bi-boxes fs-1 d-block mb-2"></i>Nog geen zones.</div>':zones.map(z=>`<div class="col-md-4"><div class="card border-0 shadow-sm rounded-3 overflow-hidden"><div style="height:8px;background:${z.color}"></div><div class="p-3"><div class="d-flex justify-content-between align-items-start mb-2"><div class="fw-bold">${z.name}</div><span class="badge" style="background:${z.color}">${z.product_count} prod.</span></div><div class="text-muted small mb-3">${z.description||'Geen beschrijving'}</div><div class="d-flex gap-2"><button class="btn btn-sm btn-outline-success" onclick="openZoneQR(${z.id})" title="QR Code"><i class="bi bi-qr-code"></i></button><button class="btn btn-sm btn-outline-primary flex-fill" onclick="editZone(${z.id})"><i class="bi bi-pencil me-1"></i>Bewerk</button><button class="btn btn-sm btn-outline-danger" onclick="deleteZone(${z.id})"><i class="bi bi-trash"></i></button></div></div></div></div>`).join('');
+}
+
+function renderMap(){
+  const grid=document.getElementById('store-map-grid');
+  const COLS=6,ROWS=8;
+  const cells=Array(ROWS*COLS).fill(null);
+  zones.forEach(z=>{const x=Math.min(z.grid_x||0,COLS-1),y=Math.min(z.grid_y||0,ROWS-1),w=Math.min(z.grid_w||2,COLS-x),h=Math.min(z.grid_h||2,ROWS-y);for(let r=y;r<y+h;r++)for(let c=x;c<x+w;c++)if(r<ROWS&&c<COLS)cells[r*COLS+c]=z;});
+  grid.style.gridTemplateColumns=`repeat(${COLS},1fr)`;grid.innerHTML='';
+  const rendered=new Set();
+  cells.forEach((z,i)=>{
+    if(z&&!rendered.has(z.id)){const col=i%COLS,row=Math.floor(i/COLS);const div=document.createElement('div');div.className='zone-block';div.style.background=z.color;div.style.gridColumn=`${col+1} / span ${Math.min(z.grid_w||2,COLS-col)}`;div.style.gridRow=`${row+1} / span ${Math.min(z.grid_h||2,ROWS-row)}`;div.innerHTML=`<div>${z.name}</div><small style="opacity:.8">${z.product_count||0} prod.</small>`;grid.appendChild(div);rendered.add(z.id);}
+    else if(!z){const div=document.createElement('div');div.className='zone-cell';div.innerHTML='<i class="bi bi-plus text-muted"></i>';div.onclick=()=>openZoneModal();grid.appendChild(div);}
+  });
+  document.getElementById('zone-legend').innerHTML=zones.map(z=>`<span style="background:${z.color};color:white;border-radius:20px;padding:4px 12px;font-size:.8rem">${z.name}</span>`).join('');
+}
+
+function populateZoneSelect(){document.getElementById('prod-zone').innerHTML='<option value="">-- Geen zone --</option>'+zones.map(z=>`<option value="${z.id}">${z.name}</option>`).join('');}
+
+function renderProducts(filtered=null){
+  const data=filtered||products;
+  document.getElementById('products-table').innerHTML=data.length===0?'<tr><td colspan="6" class="text-center text-muted p-4">Geen producten</td></tr>':data.map(p=>`<tr class="product-row"><td><div class="fw-semibold">${p.name}</div><small class="text-muted">${p.barcode||''}${p.category?' &middot; '+p.category:''}</small></td><td>${p.zone_name?`<span class="badge" style="background:${p.zone_color}">${p.zone_name}</span>`:'<span class="text-muted">-</span>'}</td><td><small>${p.aisle?'Gang '+p.aisle:''}${p.shelf?' &middot; Rek '+p.shelf:''}</small></td><td>${p.price>0?'EUR '+p.price.toFixed(2):'-'}</td><td><span class="badge ${p.stock_status==='in_stock'?'bg-success':'bg-warning'}">${p.stock_status==='in_stock'?'Op voorraad':'Beperkt'}</span></td><td><button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${p.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})"><i class="bi bi-trash"></i></button></td></tr>`).join('');
+}
+
+function filterProducts(){const q=document.getElementById('prod-search').value.toLowerCase();renderProducts(products.filter(p=>p.name.toLowerCase().includes(q)||(p.barcode||'').includes(q)||(p.category||'').toLowerCase().includes(q)));}
+
+function initColorPicker(){document.getElementById('color-picker').innerHTML=COLORS.map(c=>`<div class="color-dot ${c===selectedColor?'selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');}
+function selectColor(c){selectedColor=c;document.querySelectorAll('.color-dot').forEach(d=>d.classList.toggle('selected',d.style.background===c||d.style.backgroundColor===c));}
+
+function openZoneModal(zone=null){
+  document.getElementById('zone-id').value=zone?zone.id:'';
+  document.getElementById('zone-name').value=zone?zone.name:'';
+  document.getElementById('zone-desc').value=zone?zone.description||'':'';
+  document.getElementById('zone-x').value=zone?zone.grid_x:0;
+  document.getElementById('zone-y').value=zone?zone.grid_y:0;
+  document.getElementById('zone-w').value=zone?zone.grid_w:2;
+  document.getElementById('zone-h').value=zone?zone.grid_h:2;
+  document.getElementById('zone-modal-title').textContent=zone?'Zone Bewerken':'Nieuwe Zone';
+  selectedColor=zone?zone.color:COLORS[0];initColorPicker();
+  new bootstrap.Modal(document.getElementById('zoneModal')).show();
+}
+function editZone(id){openZoneModal(zones.find(z=>z.id===id));}
+async function saveZone(){
+  const id=document.getElementById('zone-id').value;
+  const body={name:document.getElementById('zone-name').value,description:document.getElementById('zone-desc').value,color:selectedColor,grid_x:+document.getElementById('zone-x').value,grid_y:+document.getElementById('zone-y').value,grid_w:+document.getElementById('zone-w').value,grid_h:+document.getElementById('zone-h').value};
+  const r=await fetch(API+(id?`/api/zones/${id}`:'/api/zones/'),{method:id?'PUT':'POST',headers:H(),body:JSON.stringify(body)});
+  if(r.ok){bootstrap.Modal.getInstance(document.getElementById('zoneModal')).hide();await loadZones();}
+}
+async function deleteZone(id){if(!confirm('Zone verwijderen?'))return;await fetch(API+`/api/zones/${id}`,{method:'DELETE',headers:H()});await loadZones();}
+
+function openProductModal(prod=null){
+  ['prod-id','prod-name','prod-price','prod-barcode','prod-aisle','prod-shelf','prod-category','prod-tags','prod-desc','prod-notes'].forEach(id=>document.getElementById(id).value='');
+  if(prod){document.getElementById('prod-id').value=prod.id;document.getElementById('prod-name').value=prod.name;document.getElementById('prod-price').value=prod.price;document.getElementById('prod-barcode').value=prod.barcode||'';document.getElementById('prod-aisle').value=prod.aisle||'';document.getElementById('prod-shelf').value=prod.shelf||'';document.getElementById('prod-category').value=prod.category||'';document.getElementById('prod-tags').value=prod.tags||'';document.getElementById('prod-desc').value=prod.description||'';document.getElementById('prod-notes').value=prod.position_notes||'';if(prod.zone_id)document.getElementById('prod-zone').value=prod.zone_id;}
+  document.getElementById('prod-modal-title').textContent=prod?'Product Bewerken':'Nieuw Product';
+  new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+function editProduct(id){openProductModal(products.find(p=>p.id===id));}
+async function saveProduct(){
+  const id=document.getElementById('prod-id').value;
+  const zoneVal=document.getElementById('prod-zone').value;
+  const body={name:document.getElementById('prod-name').value,price:parseFloat(document.getElementById('prod-price').value)||0,barcode:document.getElementById('prod-barcode').value,aisle:document.getElementById('prod-aisle').value,shelf:document.getElementById('prod-shelf').value,category:document.getElementById('prod-category').value,tags:document.getElementById('prod-tags').value,description:document.getElementById('prod-desc').value,position_notes:document.getElementById('prod-notes').value,zone_id:zoneVal?parseInt(zoneVal):null};
+  const r=await fetch(API+(id?`/api/products/${id}`:'/api/products/'),{method:id?'PUT':'POST',headers:H(),body:JSON.stringify(body)});
+  if(r.ok){bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();await loadProducts();}
+}
+async function deleteProduct(id){if(!confirm('Verwijderen?'))return;await fetch(API+`/api/products/${id}`,{method:'DELETE',headers:H()});await loadProducts();}
+
+async function saveSettings(){
+  const r=await fetch(API+'/api/stores/me',{method:'PUT',headers:H(),body:JSON.stringify({name:document.getElementById('set-name').value,address:document.getElementById('set-address').value,phone:document.getElementById('set-phone').value})});
+  if(r.ok)alert('Opgeslagen!');
+}
+
+function copyUrl(){navigator.clipboard.writeText(document.getElementById('customer-url').value);alert('URL gekopieerd!');}
+function showSection(name){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-'+name).classList.add('active');document.querySelectorAll('.nav-item a').forEach(a=>a.classList.remove('active'));if(name==='analytics')loadAnalytics();}
+function logout(){localStorage.removeItem('sf_token');localStorage.removeItem('sf_tenant_id');window.location.href='/';}
+
+init();
+</script>
+</body>
+</html>
