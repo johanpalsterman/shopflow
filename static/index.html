@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopFlow - Slim winkelen & repareren</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --sf-primary: #2563EB;
+    --sf-secondary: #10B981;
+    --sf-dark: #1E293B;
+    --sf-light: #F8FAFC;
+  }
+  body { background: var(--sf-light); font-family: 'Segoe UI', sans-serif; }
+  .hero {
+    background: linear-gradient(135deg, var(--sf-primary) 0%, #1D4ED8 50%, var(--sf-secondary) 100%);
+    color: white; min-height: 100vh; display: flex; align-items: center;
+  }
+  .hero-card {
+    background: rgba(255,255,255,0.12); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 40px;
+  }
+  .card-mode { border-radius: 16px; border: 2px solid transparent; cursor: pointer; transition: all .2s; }
+  .card-mode:hover { border-color: var(--sf-primary); transform: translateY(-4px); box-shadow: 0 12px 30px rgba(37,99,235,.15); }
+  .card-mode.active { border-color: var(--sf-primary); background: #EFF6FF; }
+  .tab-btn { border: none; background: none; padding: 10px 20px; border-bottom: 3px solid transparent; color: #64748B; font-weight: 600; }
+  .tab-btn.active { border-bottom-color: var(--sf-primary); color: var(--sf-primary); }
+  .form-control:focus { border-color: var(--sf-primary); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+  .btn-primary { background: var(--sf-primary); border-color: var(--sf-primary); }
+  .btn-google { background: white; border: 1px solid #D1D5DB; color: #374151; }
+  .btn-google:hover { background: #F9FAFB; }
+  .badge-mode { font-size: .75rem; padding: 4px 10px; border-radius: 20px; }
+  #mainCard { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.12); padding: 0; overflow: hidden; max-width: 460px; width: 100%; }
+  .tab-header { border-bottom: 1px solid #E2E8F0; display: flex; }
+  .panel { padding: 30px; }
+  .logo-text { font-size: 2rem; font-weight: 800; }
+  .logo-shop { color: white; }
+  .logo-flow { color: #A5F3FC; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+
+      <!-- Left: Branding -->
+      <div class="col-lg-6">
+        <div class="hero-card">
+          <div class="logo-text mb-3"><span class="logo-shop">Shop</span><span class="logo-flow">Flow</span></div>
+          <p class="lead mb-4">Vind alles in de winkel & herstel zelf met AI-begeleiding</p>
+
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="card-mode bg-white text-dark rounded-3 p-3 text-center">
+                <i class="bi bi-map fs-2 text-primary mb-2 d-block"></i>
+                <small class="fw-bold">Winkelkaart</small>
+                <div class="text-muted" style="font-size:.8rem">Vind elk product razendsnel</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="card-mode bg-white text-dark rounded-3 p-3 text-center">
+                <i class="bi bi-tools fs-2 text-success mb-2 d-block"></i>
+                <small class="fw-bold">AI Reparatiegids</small>
+                <div class="text-muted" style="font-size:.8rem">Stap-voor-stap herstelgids</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="card-mode bg-white text-dark rounded-3 p-3 text-center">
+                <i class="bi bi-qr-code-scan fs-2 text-warning mb-2 d-block"></i>
+                <small class="fw-bold">Barcode Scan</small>
+                <div class="text-muted" style="font-size:.8rem">Producten instant opzoeken</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="card-mode bg-white text-dark rounded-3 p-3 text-center">
+                <i class="bi bi-shop fs-2 text-info mb-2 d-block"></i>
+                <small class="fw-bold">Jouw Winkel</small>
+                <div class="text-muted" style="font-size:.8rem">Klanten beter begeleiden</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-white-50" style="font-size:.85rem">
+            <i class="bi bi-shield-check me-1"></i> WishFlow Suite &bull; v1.0.0
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Auth card -->
+      <div class="col-lg-6 d-flex justify-content-center">
+        <div id="mainCard">
+
+          <div class="tab-header">
+            <button class="tab-btn active flex-fill" onclick="setTab('customer')">
+              <i class="bi bi-person me-1"></i>Klant
+            </button>
+            <button class="tab-btn flex-fill" onclick="setTab('admin')">
+              <i class="bi bi-shop me-1"></i>Winkel Beheer
+            </button>
+            <button class="tab-btn flex-fill" onclick="setTab('register')">
+              <i class="bi bi-plus-circle me-1"></i>Registreer
+            </button>
+          </div>
+
+          <!-- Customer Panel -->
+          <div class="panel" id="panel-customer">
+            <h5 class="fw-bold mb-1">Welkom, klant!</h5>
+            <p class="text-muted mb-4" style="font-size:.9rem">Kies je winkel en begin je herstelproject</p>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Winkel</label>
+              <select class="form-select" id="cust-store">
+                <option value="">Winkel laden...</option>
+              </select>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary btn-lg" onclick="goCustomer()">
+                <i class="bi bi-arrow-right-circle me-2"></i>Ga naar winkel app
+              </button>
+              <button class="btn btn-google" onclick="googleLoginCustomer()">
+                <img src="https://www.google.com/favicon.ico" width="16" class="me-2">Aanmelden met Google
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin Panel -->
+          <div class="panel d-none" id="panel-admin">
+            <h5 class="fw-bold mb-1">Winkel Admin</h5>
+            <p class="text-muted mb-4" style="font-size:.9rem">Beheer uw winkel, zones en producten</p>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">E-mail</label>
+              <input type="email" class="form-control" id="admin-email" placeholder="admin@uwwinkel.be">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Wachtwoord</label>
+              <input type="password" class="form-control" id="admin-pw" placeholder="••••••••••••">
+            </div>
+
+            <div id="admin-error" class="alert alert-danger d-none py-2"></div>
+
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary" onclick="adminLogin()">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Inloggen
+              </button>
+              <button class="btn btn-google" onclick="googleLoginAdmin()">
+                <img src="https://www.google.com/favicon.ico" width="16" class="me-2">Aanmelden met Google
+              </button>
+            </div>
+          </div>
+
+          <!-- Register Panel -->
+          <div class="panel d-none" id="panel-register">
+            <h5 class="fw-bold mb-1">Winkel Registreren</h5>
+            <p class="text-muted mb-3" style="font-size:.9rem">Start gratis met ShopFlow voor uw winkel</p>
+
+            <div class="mb-2">
+              <label class="form-label fw-semibold">Winkel naam</label>
+              <input type="text" class="form-control" id="reg-name" placeholder="Jansen Bouwmarkt">
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-semibold">E-mail</label>
+              <input type="email" class="form-control" id="reg-email" placeholder="info@uwwinkel.be">
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-semibold">Wachtwoord <small class="text-muted">(min 12 tekens)</small></label>
+              <input type="password" class="form-control" id="reg-pw" placeholder="Minimaal 12 tekens">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Adres <small class="text-muted">(optioneel)</small></label>
+              <input type="text" class="form-control" id="reg-address" placeholder="Straat 1, 1000 Brussel">
+            </div>
+
+            <div id="reg-error" class="alert alert-danger d-none py-2"></div>
+            <div id="reg-success" class="alert alert-success d-none py-2"></div>
+
+            <div class="d-grid">
+              <button class="btn btn-success" onclick="registerStore()">
+                <i class="bi bi-shop me-2"></i>Registreer Winkel
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+async function loadStores() {
+  try {
+    const r = await fetch(API + '/api/auth/stores');
+    const stores = await r.json();
+    const sel = document.getElementById('cust-store');
+    sel.innerHTML = stores.length
+      ? stores.map(s => `<option value="${s.slug}">${s.name}</option>`).join('')
+      : '<option value="">Geen winkels gevonden</option>';
+  } catch(e) {
+    console.error('Load stores:', e);
+  }
+}
+
+function setTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['customer','admin','register'][i] === tab);
+  });
+  ['customer','admin','register'].forEach(t => {
+    document.getElementById('panel-' + t).classList.toggle('d-none', t !== tab);
+  });
+}
+
+function goCustomer() {
+  const slug = document.getElementById('cust-store').value;
+  if (!slug) { alert('Selecteer eerst een winkel'); return; }
+  sessionStorage.setItem('sf_store_slug', slug);
+  window.location.href = '/app?store=' + slug;
+}
+
+async function adminLogin() {
+  const email = document.getElementById('admin-email').value;
+  const pw = document.getElementById('admin-pw').value;
+  const errEl = document.getElementById('admin-error');
+  errEl.classList.add('d-none');
+  try {
+    const r = await fetch(API + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password: pw})
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.detail; errEl.classList.remove('d-none'); return; }
+    localStorage.setItem('sf_token', data.token);
+    localStorage.setItem('sf_tenant_id', data.tenant_id);
+    window.location.href = '/admin';
+  } catch(e) {
+    errEl.textContent = 'Verbindingsfout'; errEl.classList.remove('d-none');
+  }
+}
+
+async function registerStore() {
+  const name = document.getElementById('reg-name').value;
+  const email = document.getElementById('reg-email').value;
+  const pw = document.getElementById('reg-pw').value;
+  const address = document.getElementById('reg-address').value;
+  const errEl = document.getElementById('reg-error');
+  const okEl = document.getElementById('reg-success');
+  errEl.classList.add('d-none'); okEl.classList.add('d-none');
+  try {
+    const r = await fetch(API + '/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({store_name: name, email, password: pw, address})
+    });
+    const data = await r.json();
+    if (!r.ok) { errEl.textContent = data.detail; errEl.classList.remove('d-none'); return; }
+    localStorage.setItem('sf_token', data.token);
+    localStorage.setItem('sf_tenant_id', data.tenant_id);
+    okEl.textContent = `Winkel "${name}" geregistreerd! Doorsturen naar dashboard...`;
+    okEl.classList.remove('d-none');
+    setTimeout(() => window.location.href = '/admin', 1500);
+  } catch(e) {
+    errEl.textContent = 'Verbindingsfout'; errEl.classList.remove('d-none');
+  }
+}
+
+function googleLoginAdmin() { alert('Google OAuth: configureer GOOGLE_CLIENT_ID in .env'); }
+function googleLoginCustomer() { alert('Google OAuth: configureer GOOGLE_CLIENT_ID in .env'); }
+
+loadStores();
+</script>
+</body>
+</html>
