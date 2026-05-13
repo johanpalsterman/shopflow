@@ -1,8 +1,9 @@
 """
-ShopFlow v1.1.0 - Store Navigation & AI Repair Guide Platform
+ShopFlow v1.2.0 - Store Navigation & AI Repair Guide Platform
 WishFlow Suite - Johan's Projects
 
 v1.1.0: CSV import, QR codes, analytics, NL/FR, branding
+v1.2.0: Marker location system, garage support, employee location page
 """
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -15,8 +16,9 @@ import os
 from database import init_db
 from routers import auth, stores, zones, products, repairs
 from routers import import_csv, qr, analytics, branding
+from routers import markers
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 APP_NAME = "ShopFlow"
 
 app = FastAPI(
@@ -65,6 +67,9 @@ app.include_router(qr.router,         prefix="/api/qr",        tags=["qr"])
 app.include_router(analytics.router,  prefix="/api/analytics", tags=["analytics"])
 app.include_router(branding.router,   prefix="/api/branding",  tags=["branding"])
 
+# v1.2.0 routers
+app.include_router(markers.router,    prefix="/api/markers",   tags=["markers"])
+
 
 # Health endpoint
 @app.get("/health")
@@ -74,7 +79,7 @@ async def health():
         "version": APP_VERSION,
         "module": APP_NAME,
         "suite": "WishFlow",
-        "features": ["csv-import", "qr-codes", "analytics", "bilingual", "branding"]
+        "features": ["csv-import", "qr-codes", "analytics", "bilingual", "branding", "markers"]
     }
 
 
@@ -106,6 +111,11 @@ async def customer_app():
 @app.get("/scan")
 async def scan_page():
     return FileResponse("static/scan.html", media_type="text/html")
+
+
+@app.get("/location")
+async def location_page():
+    return FileResponse("static/location.html", media_type="text/html")
 
 
 if __name__ == "__main__":

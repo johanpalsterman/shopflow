@@ -170,6 +170,43 @@ def init_db():
         )
     """)
 
+    # v1.2.0: Marker system
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS markers (
+            id {auto},
+            tenant_id INTEGER NOT NULL,
+            marker_number INTEGER NOT NULL,
+            label TEXT,
+            x_pos REAL DEFAULT 0.5,
+            y_pos REAL DEFAULT 0.5,
+            zone_id INTEGER,
+            location_type TEXT DEFAULT 'shop',
+            notes TEXT,
+            created_at {ts},
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+            FOREIGN KEY (zone_id) REFERENCES zones(id)
+        )
+    """)
+
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS marker_products (
+            id {auto},
+            marker_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            quantity_note TEXT DEFAULT '',
+            created_at {ts},
+            FOREIGN KEY (marker_id) REFERENCES markers(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+    """)
+
+    # Add marker_id column to products if it doesn't exist yet
+    try:
+        cur.execute("ALTER TABLE products ADD COLUMN marker_id INTEGER")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+
     conn.commit()
     cur.close()
     conn.close()

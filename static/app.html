@@ -290,6 +290,26 @@
   </div>
 </div>
 
+<!-- PAGE: LOCATIE -->
+<div id="page-locatie" class="page">
+  <div class="step-card">
+    <div class="step-header">
+      <div class="fw-bold fs-5"><i class="bi bi-geo-alt me-2"></i>Locatie zoeken</div>
+      <div style="opacity:.8;font-size:.9rem">Typ een markernummer om producten te vinden</div>
+    </div>
+    <div class="step-body">
+      <div class="mb-3">
+        <label style="font-weight:600;font-size:.85rem;display:block;margin-bottom:6px">Markernummer</label>
+        <div class="input-group">
+          <input type="number" class="form-control" id="loc-marker-input" min="1" max="999" placeholder="bijv. 5" style="border-radius:10px 0 0 10px;border:2px solid #E2E8F0">
+          <button class="btn btn-primary" style="border-radius:0 10px 10px 0" onclick="lookupMarker()"><i class="bi bi-search"></i></button>
+        </div>
+      </div>
+      <div id="loc-result"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Bottom Nav -->
 <div class="nav-bottom">
   <button class="nav-tab active" id="nav-repair" onclick="showPage('repair')">
@@ -298,8 +318,8 @@
   <button class="nav-tab" id="nav-map" onclick="showPage('map')">
     <i class="bi bi-map"></i>Kaart
   </button>
-  <button class="nav-tab" id="nav-scan" onclick="openScanner()">
-    <i class="bi bi-qr-code-scan"></i>Scan
+  <button class="nav-tab" id="nav-locatie" onclick="showPage('locatie')">
+    <i class="bi bi-geo-alt"></i>Locatie
   </button>
   <button class="nav-tab" id="nav-help" onclick="showPage('help')">
     <i class="bi bi-question-circle"></i>Help
@@ -573,6 +593,67 @@ function stopScanner() {
     html5QrCode.stop().then(() => { html5QrCode = null; });
   }
   showPage('repair');
+}
+
+async function lookupMarker() {
+  const num = parseInt(document.getElementById('loc-marker-input').value);
+  const el = document.getElementById('loc-result');
+  if (!num || num < 1) { el.innerHTML = '<div class="alert alert-warning">Voer een geldig markernummer in</div>'; return; }
+  if (!STORE_SLUG) { el.innerHTML = '<div class="alert alert-warning">Geen winkel geselecteerd</div>'; return; }
+  el.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
+  try {
+    const r = await fetch(API + `/api/markers/public/${STORE_SLUG}/${num}`);
+    if (!r.ok) { el.innerHTML = '<div class="alert alert-warning">Marker niet gevonden</div>'; return; }
+    const data = await r.json();
+    const typeIcon = {shop:'bi-shop', garage:'bi-house-gear', home:'bi-house-heart'}[data.location_type] || 'bi-geo-alt';
+    let html = `
+      <div class="product-card found mb-3">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div style="width:36px;height:36px;background:var(--sf-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700">${data.marker_number}</div>
+          <div><div class="fw-bold">${data.label || 'Marker '+data.marker_number}</div>
+          <div class="text-muted" style="font-size:.8rem"><i class="bi ${typeIcon} me-1"></i>${data.zone_name || ''}</div></div>
+        </div>
+        ${data.notes ? `<div class="step-tip"><i class="bi bi-info-circle me-1"></i>${data.notes}</div>` : ''}
+      </div>`;
+    // Marker on map
+    html += `<div id="loc-map" style="position:relative;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;width:100%;aspect-ratio:4/3;margin-bottom:12px">`;
+    html += `<div id="loc-map-zones" style="position:absolute;inset:0"></div>`;
+    html += `<div style="position:absolute;transform:translate(-50%,-50%);left:${data.x_pos*100}%;top:${data.y_pos*100}%;width:32px;height:32px;border-radius:50%;background:#EF4444;color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:10">${data.marker_number}</div>`;
+    html += `</div>`;
+    const prods = data.products || [];
+    if (prods.length === 0) {
+      html += '<div class="text-muted small text-center py-2">Geen producten bij deze marker</div>';
+    } else {
+      html += `<div class="fw-bold mb-2"><i class="bi bi-box-seam me-2"></i>Producten (${prods.length})</div>`;
+      html += prods.map(p => `
+        <div class="product-card found mb-2">
+          <div class="fw-bold">${p.name}</div>
+          <div class="text-muted" style="font-size:.85rem mb-1">${p.description || ''}</div>
+          <div class="d-flex flex-wrap gap-2 mt-1 align-items-center">
+            ${p.zone_name ? `<span class="zone-tag" style="background:${p.zone_color || '#3B82F6'}">${p.zone_name}</span>` : ''}
+            ${p.aisle ? `<span class="location-pill"><i class="bi bi-geo-alt"></i>Gang ${p.aisle}${p.shelf ? ', Rek '+p.shelf : ''}</span>` : ''}
+            ${p.quantity_note ? `<span class="meta-chip"><i class="bi bi-stack me-1"></i>${p.quantity_note}</span>` : ''}
+          </div>
+        </div>`).join('');
+    }
+    el.innerHTML = html;
+    // Render zones on mini-map
+    setTimeout(async () => {
+      try {
+        const zr = await fetch(API + `/api/markers/public/${STORE_SLUG}/`);
+        // We don't need full zones here, just render what we have from zones global
+        const zonesLayer = document.getElementById('loc-map-zones');
+        if (zonesLayer && zones.length) {
+          const COLS=6,ROWS=8;
+          zonesLayer.innerHTML = zones.map(z => `
+            <div style="position:absolute;left:${(z.grid_x||0)/COLS*100}%;top:${(z.grid_y||0)/ROWS*100}%;width:${(z.grid_w||2)/COLS*100}%;height:${(z.grid_h||2)/ROWS*100}%;background:${z.color||'#3B82F6'};border-radius:4px;opacity:.6;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:white;text-align:center">${z.name}</div>
+          `).join('');
+        }
+      } catch(e) {}
+    }, 100);
+  } catch(e) {
+    el.innerHTML = '<div class="alert alert-danger">Fout: ' + e.message + '</div>';
+  }
 }
 
 init();

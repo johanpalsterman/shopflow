@@ -64,11 +64,13 @@ body{background:#F1F5F9;font-family:'Segoe UI',sans-serif}
       <li class="nav-item"><a href="#" onclick="showSection('analytics')"><i class="bi bi-bar-chart-line"></i>Analytics</a></li>
       <li class="nav-item"><a href="#" onclick="showSection('branding')"><i class="bi bi-palette"></i>Branding</a></li>
       <li class="nav-item"><a href="#" onclick="showSection('settings')"><i class="bi bi-gear"></i>Instellingen</a></li>
+      <li class="nav-item"><a href="#" onclick="showSection('markers')"><i class="bi bi-geo-alt"></i>Markers</a></li>
       <li class="nav-item"><a href="#" onclick="showSection('handleiding')"><i class="bi bi-book"></i>Handleiding</a></li>
     </ul>
   </nav>
   <div style="padding:16px;border-top:1px solid rgba(255,255,255,.1)">
     <div style="color:rgba(255,255,255,.6);font-size:.8rem" id="sidebar-store">Laden...</div>
+    <a href="/location" target="_blank" class="btn btn-sm btn-outline-info w-100 mt-1" style="font-size:.75rem"><i class="bi bi-geo-alt me-1"></i>Locatie app</a>
     <button class="btn btn-sm btn-outline-light w-100 mt-2" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i>Uitloggen</button>
   </div>
 </div>
@@ -285,6 +287,30 @@ body{background:#F1F5F9;font-family:'Segoe UI',sans-serif}
             <button class="btn btn-primary" onclick="saveBranding()"><i class="bi bi-check me-2"></i>Branding opslaan</button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKERS -->
+  <div id="sec-markers" class="section">
+    <div class="content-card mb-4">
+      <div class="content-header">
+        <div class="fw-bold"><i class="bi bi-geo-alt me-2"></i>Markers</div>
+        <button class="btn btn-primary btn-sm" onclick="openMarkerModal()"><i class="bi bi-plus-lg me-1"></i>Nieuwe marker</button>
+      </div>
+      <div class="p-4">
+        <!-- Kaart met markers -->
+        <div class="mb-4">
+          <div class="fw-bold mb-2">Markerkaart</div>
+          <div id="markers-map" style="position:relative;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;height:300px;overflow:hidden;">
+            <div id="markers-map-pins"></div>
+          </div>
+        </div>
+        <!-- Tabel -->
+        <table class="table table-hover" id="markers-table">
+          <thead><tr><th>#</th><th>Label</th><th>Type</th><th>Zone</th><th>Producten</th><th>Positie</th><th></th></tr></thead>
+          <tbody id="markers-tbody"><tr><td colspan="7" class="text-center text-muted py-4">Laden...</td></tr></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -684,7 +710,82 @@ async function saveSettings(){
 }
 
 function copyUrl(){navigator.clipboard.writeText(document.getElementById('customer-url').value);alert('URL gekopieerd!');}
-function showSection(name){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-'+name).classList.add('active');document.querySelectorAll('.nav-item a').forEach(a=>a.classList.remove('active'));if(name==='analytics')loadAnalytics();}
+function showSection(name){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('sec-'+name).classList.add('active');document.querySelectorAll('.nav-item a').forEach(a=>a.classList.remove('active'));if(name==='analytics')loadAnalytics();if(name==='markers')loadMarkers();}
+
+// ===== MARKERS =====
+let allZonesForMarkers = [];
+async function loadMarkers(){
+  const token = localStorage.getItem('sf_token');
+  const [mRes, zRes] = await Promise.all([
+    fetch('/api/markers/', {headers:{'Authorization':'Bearer '+token}}),
+    fetch('/api/zones/', {headers:{'Authorization':'Bearer '+token}})
+  ]);
+  const markers = await mRes.json();
+  allZonesForMarkers = await zRes.json();
+  const tbody = document.getElementById('markers-tbody');
+  tbody.innerHTML = markers.length ? markers.map(m=>`
+    <tr>
+      <td><span class="badge bg-dark fs-6">${m.marker_number}</span></td>
+      <td>${m.label||'-'}</td>
+      <td><span class="badge ${m.location_type==='shop'?'bg-primary':m.location_type==='garage'?'bg-warning text-dark':'bg-success'}">${m.location_type==='shop'?'Winkel':m.location_type==='garage'?'Garage':'Thuis'}</span></td>
+      <td>${m.zone_name||'-'}</td>
+      <td><span class="badge bg-secondary">${m.product_count}</span></td>
+      <td>${Math.round(m.x_pos*100)}% / ${Math.round(m.y_pos*100)}%</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary me-1" onclick="editMarker(${m.id})"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteMarker(${m.id})"><i class="bi bi-trash"></i></button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="7" class="text-center text-muted py-4">Nog geen markers. Klik op "Nieuwe marker" om te beginnen.</td></tr>';
+  // Kaart
+  const mapEl = document.getElementById('markers-map-pins');
+  mapEl.innerHTML = markers.map(m=>`<div style="position:absolute;left:${m.x_pos*100}%;top:${m.y_pos*100}%;transform:translate(-50%,-50%);background:#1E293B;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:.85rem;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer" title="Marker ${m.marker_number}: ${m.label||''}" onclick="editMarker(${m.id})">${m.marker_number}</div>`).join('');
+}
+function openMarkerModal(data=null){
+  const isEdit = !!data;
+  const zoneOpts = allZonesForMarkers.map(z=>`<option value="${z.id}" ${data&&data.zone_id===z.id?'selected':''}>${z.name}</option>`).join('');
+  const html=`<div class="modal fade" id="markerModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">${isEdit?'Marker bewerken':'Nieuwe marker'}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="mb-3"><label class="form-label">Markernummer</label><input type="number" class="form-control" id="m-number" min="1" max="999" value="${data?data.marker_number:''}"></div>
+      <div class="mb-3"><label class="form-label">Label (optioneel)</label><input type="text" class="form-control" id="m-label" value="${data?data.label||'':''}"></div>
+      <div class="mb-3"><label class="form-label">Locatietype</label><select class="form-select" id="m-type"><option value="shop" ${!data||data.location_type==='shop'?'selected':''}>Winkel</option><option value="garage" ${data&&data.location_type==='garage'?'selected':''}>Garage</option><option value="home" ${data&&data.location_type==='home'?'selected':''}>Thuis</option></select></div>
+      <div class="mb-3"><label class="form-label">Zone</label><select class="form-select" id="m-zone"><option value="">-- geen zone --</option>${zoneOpts}</select></div>
+      <div class="mb-3"><label class="form-label">Positie op kaart</label><div id="m-map-pick" style="position:relative;background:#F8FAFC;border:2px dashed #CBD5E1;border-radius:8px;height:200px;cursor:crosshair;overflow:hidden"><div id="m-pin" style="position:absolute;display:none;background:#2563EB;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;transform:translate(-50%,-50%)">📍</div></div><small class="text-muted">Klik op de kaart om de positie in te stellen</small></div>
+      <div class="mb-3"><label class="form-label">Notities</label><input type="text" class="form-control" id="m-notes" value="${data?data.notes||'':''}"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Annuleer</button><button class="btn btn-primary" onclick="saveMarker(${data?data.id:'null'})">${isEdit?'Opslaan':'Aanmaken'}</button></div>
+  </div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  const modal = new bootstrap.Modal(document.getElementById('markerModal'));
+  modal.show();
+  let xPos=data?data.x_pos:0.5, yPos=data?data.y_pos:0.5;
+  const mapPick=document.getElementById('m-map-pick');
+  const pin=document.getElementById('m-pin');
+  if(data){pin.style.left=(xPos*100)+'%';pin.style.top=(yPos*100)+'%';pin.style.display='flex';}
+  mapPick.addEventListener('click',e=>{const r=mapPick.getBoundingClientRect();xPos=(e.clientX-r.left)/r.width;yPos=(e.clientY-r.top)/r.height;pin.style.left=(xPos*100)+'%';pin.style.top=(yPos*100)+'%';pin.style.display='flex';});
+  document.getElementById('markerModal').addEventListener('hidden.bs.modal',()=>document.getElementById('markerModal').remove());
+  window._markerPos={get x(){return xPos},get y(){return yPos}};
+}
+async function saveMarker(id){
+  const token=localStorage.getItem('sf_token');
+  const body={marker_number:parseInt(document.getElementById('m-number').value),label:document.getElementById('m-label').value,location_type:document.getElementById('m-type').value,zone_id:document.getElementById('m-zone').value||null,notes:document.getElementById('m-notes').value,x_pos:window._markerPos?window._markerPos.x:0.5,y_pos:window._markerPos?window._markerPos.y:0.5};
+  const url=id?`/api/markers/${id}`:'/api/markers/';
+  const res=await fetch(url,{method:id?'PUT':'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(res.ok){bootstrap.Modal.getInstance(document.getElementById('markerModal')).hide();loadMarkers();}
+  else{const e=await res.json();alert('Fout: '+(e.detail||'Onbekend'));}
+}
+async function editMarker(id){
+  const token=localStorage.getItem('sf_token');
+  const res=await fetch(`/api/markers/${id}`,{headers:{'Authorization':'Bearer '+token}});
+  const data=await res.json();
+  openMarkerModal(data);
+}
+async function deleteMarker(id){
+  if(!confirm('Marker verwijderen?'))return;
+  const token=localStorage.getItem('sf_token');
+  await fetch(`/api/markers/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+token}});
+  loadMarkers();
+}
 function logout(){localStorage.removeItem('sf_token');localStorage.removeItem('sf_tenant_id');window.location.href='/';}
 
 init();

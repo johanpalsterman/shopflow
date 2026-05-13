@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ShopFlow - Locatie Invoer</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{--sf-primary:#2563EB;--sf-secondary:#10B981}
+*{box-sizing:border-box}
+body{background:#F1F5F9;font-family:'Segoe UI',sans-serif;max-width:480px;margin:0 auto;min-height:100vh}
+.app-header{background:linear-gradient(135deg,var(--sf-primary),#1D4ED8);color:white;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+.logo-sm{font-size:1.1rem;font-weight:800}
+.logo-flow-sm{color:#A5F3FC}
+.page{display:none;padding:16px;padding-bottom:24px}
+.page.active{display:block}
+.card-sf{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(0,0,0,.08);margin-bottom:16px}
+.card-header-sf{font-weight:700;font-size:1rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--sf-primary)}
+.btn-main{background:var(--sf-primary);color:white;border:none;border-radius:12px;padding:14px;width:100%;font-size:1rem;font-weight:600;cursor:pointer;transition:all .2s;display:block;text-align:center}
+.btn-main:hover{background:#1D4ED8}
+.btn-main:disabled{background:#94A3B8;cursor:not-allowed}
+.btn-sec{background:#F1F5F9;color:#374151;border:none;border-radius:12px;padding:12px;width:100%;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-sec:hover{background:#E2E8F0}
+.form-label-sf{font-weight:600;font-size:.85rem;color:#374151;margin-bottom:4px;display:block}
+.form-control-sf{border:2px solid #E2E8F0;border-radius:10px;padding:10px 14px;width:100%;font-size:1rem;transition:border-color .2s;font-family:inherit}
+.form-control-sf:focus{outline:none;border-color:var(--sf-primary)}
+.type-btn{border:2px solid #E2E8F0;border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s;flex:1}
+.type-btn.selected{border-color:var(--sf-primary);background:#EFF6FF;color:var(--sf-primary)}
+.type-btn i{display:block;font-size:1.4rem;margin-bottom:3px}
+.type-btn span{font-size:.75rem;font-weight:600}
+#map-canvas{position:relative;background:#F8FAFC;border:2px solid #E2E8F0;border-radius:12px;overflow:hidden;width:100%;aspect-ratio:4/3;cursor:crosshair}
+.map-zone{position:absolute;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:white;opacity:.75;text-align:center;padding:2px}
+.map-marker{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:var(--sf-primary);color:white;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3);pointer-events:none}
+.map-marker.current{background:#EF4444;z-index:10;animation:pulse-m 1.5s infinite}
+@keyframes pulse-m{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.product-search-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;border:1px solid #E2E8F0;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.product-search-item:hover{border-color:var(--sf-primary);background:#EFF6FF}
+.linked-product{display:flex;align-items:center;justify-content:space-between;padding:10px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;margin-bottom:6px}
+.step-bar{display:flex;gap:4px;margin-bottom:16px}
+.step-dot{flex:1;height:4px;border-radius:2px;background:#E2E8F0;transition:background .3s}
+.step-dot.active{background:var(--sf-primary)}
+.step-dot.done{background:var(--sf-secondary)}
+#login-wrap{padding:32px 16px}
+.login-card{background:white;border-radius:20px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,.1)}
+.marker-row{display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="flex-fill">
+    <div class="logo-sm">Shop<span class="logo-flow-sm">Flow</span> <small style="opacity:.7;font-size:.7rem">Locatie</small></div>
+    <div style="opacity:.7;font-size:.75rem" id="hdr-store"></div>
+  </div>
+  <button id="logout-btn" style="display:none;background:rgba(255,255,255,.2);color:white;border:none;border-radius:8px;padding:6px 10px" onclick="logout()">
+    <i class="bi bi-box-arrow-right"></i>
+  </button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="text-center mb-4">
+      <i class="bi bi-geo-alt-fill fs-1 text-primary mb-2 d-block"></i>
+      <h5 class="fw-bold mb-1">Locatie Invoer</h5>
+      <p class="text-muted small">Medewerker login</p>
+    </div>
+    <div class="mb-3">
+      <label class="form-label-sf">Winkelnaam (slug)</label>
+      <input type="text" class="form-control-sf" id="login-slug" placeholder="mijn-winkel">
+    </div>
+    <div class="mb-3">
+      <label class="form-label-sf">Wachtwoord</label>
+      <input type="password" class="form-control-sf" id="login-pw" placeholder="••••••••">
+    </div>
+    <div id="login-err" class="alert alert-danger d-none py-2 small mb-3"></div>
+    <button class="btn-main" onclick="doLogin()"><i class="bi bi-unlock me-2"></i>Inloggen</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+
+  <!-- Step 1: Marker info -->
+  <div id="page-step1" class="page">
+    <div class="step-bar"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+    <div class="card-sf">
+      <div class="card-header-sf"><i class="bi bi-123"></i>Stap 1: Markergegevens</div>
+      <div class="mb-3">
+        <label class="form-label-sf">Markernummer (1-999)</label>
+        <input type="number" class="form-control-sf" id="inp-num" min="1" max="999" placeholder="bijv. 5">
+      </div>
+      <div class="mb-3">
+        <label class="form-label-sf">Label (optioneel)</label>
+        <input type="text" class="form-control-sf" id="inp-label" placeholder="bijv. Verfafdeling rek 3">
+      </div>
+      <div class="mb-3">
+        <label class="form-label-sf">Locatietype</label>
+        <div class="d-flex gap-2 mt-1">
+          <div class="type-btn selected" id="type-shop" onclick="selType('shop')"><i class="bi bi-shop"></i><span>Winkel</span></div>
+          <div class="type-btn" id="type-garage" onclick="selType('garage')"><i class="bi bi-house-gear"></i><span>Garage</span></div>
+          <div class="type-btn" id="type-home" onclick="selType('home')"><i class="bi bi-house-heart"></i><span>Thuis</span></div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label-sf">Zone</label>
+        <select class="form-control-sf" id="inp-zone"><option value="">-- Geen zone --</option></select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label-sf">Notities</label>
+        <textarea class="form-control-sf" id="inp-notes" rows="2" placeholder="Bijv. linksonder bij ingang..."></textarea>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn-sec" style="flex:1" onclick="goMarkersList()"><i class="bi bi-list-ul me-1"></i>Lijst</button>
+        <button class="btn-main" style="flex:2" onclick="goStep2()"><i class="bi bi-map me-2"></i>Positie op kaart</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Map -->
+  <div id="page-step2" class="page">
+    <div class="step-bar"><div class="step-dot done"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
+    <div class="card-sf">
+      <div class="card-header-sf"><i class="bi bi-map"></i>Stap 2: Positie op kaart</div>
+      <p class="text-muted small mb-2">Klik op de kaart om marker <strong id="lbl-mnum">?</strong> te plaatsen.</p>
+      <div id="map-canvas" onclick="onMapClick(event)">
+        <div id="layer-zones" style="position:absolute;inset:0"></div>
+        <div id="layer-markers" style="position:absolute;inset:0"></div>
+        <div id="pin-current" class="map-marker current" style="display:none"></div>
+      </div>
+      <div id="pos-info" class="mt-2 text-muted small text-center">Klik op de kaart om een positie te kiezen</div>
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn-sec" style="flex:1" onclick="goStep1()"><i class="bi bi-arrow-left me-1"></i>Terug</button>
+        <button class="btn-main" style="flex:2" onclick="goStep3()"><i class="bi bi-bag me-2"></i>Producten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Products -->
+  <div id="page-step3" class="page">
+    <div class="step-bar"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot active"></div></div>
+    <div class="card-sf">
+      <div class="card-header-sf"><i class="bi bi-bag-check"></i>Stap 3: Producten koppelen</div>
+      <div class="mb-3">
+        <label class="form-label-sf">Product zoeken</label>
+        <input type="text" class="form-control-sf" id="prod-search" placeholder="Naam of barcode..." oninput="searchProds()">
+      </div>
+      <div id="search-results" style="max-height:180px;overflow-y:auto;margin-bottom:12px"></div>
+      <label class="form-label-sf">Gekoppelde producten</label>
+      <div id="linked-list"><div class="text-muted small text-center py-2">Nog geen producten</div></div>
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn-sec" style="flex:1" onclick="goStep2()"><i class="bi bi-arrow-left me-1"></i>Terug</button>
+        <button class="btn-main" style="flex:2" id="save-btn" onclick="doSave()"><i class="bi bi-check-circle me-2"></i>Opslaan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div id="page-success" class="page">
+    <div class="card-sf text-center py-4">
+      <i class="bi bi-check-circle-fill text-success fs-1 mb-3 d-block"></i>
+      <h5 class="fw-bold mb-2">Opgeslagen!</h5>
+      <p class="text-muted small mb-4" id="success-txt"></p>
+      <button class="btn-main mb-2" onclick="startNew()"><i class="bi bi-plus-circle me-2"></i>Nieuwe marker</button>
+      <button class="btn-sec" onclick="goMarkersList()"><i class="bi bi-list-ul me-2"></i>Alle markers</button>
+    </div>
+  </div>
+
+  <!-- Markers list -->
+  <div id="page-markers-list" class="page">
+    <div class="card-sf">
+      <div class="card-header-sf"><i class="bi bi-geo-alt"></i>Alle markers</div>
+      <button class="btn-main mb-3" onclick="startNew()"><i class="bi bi-plus me-2"></i>Nieuwe marker</button>
+      <div id="all-markers"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Qty modal -->
+<div class="modal fade" id="qtyModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none;padding:24px">
+      <h6 class="fw-bold mb-3">Hoeveelheidsnotitie</h6>
+      <input type="text" class="form-control-sf mb-3" id="qty-input" placeholder="bijv. 10 pakjes, 3 dozen...">
+      <div class="d-flex gap-2">
+        <button class="btn-sec" onclick="cancelQty()">Annuleer</button>
+        <button class="btn-main" onclick="confirmQty()">Toevoegen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const API = '';
+let TOKEN = localStorage.getItem('sf_loc_token') || '';
+let SLUG = localStorage.getItem('sf_loc_slug') || '';
+let zones = [], allProds = [], allMarkers = [];
+let linked = []; // {prod, qty}
+let selType_ = 'shop';
+let posX = 0.5, posY = 0.5, posSet = false;
+let pendProd = null;
+let editId = null;
+let qtyModal_ = null;
+
+function H(){ return {'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'}; }
+
+async function doLogin(){
+  const slug = document.getElementById('login-slug').value.trim();
+  const pw   = document.getElementById('login-pw').value;
+  const err  = document.getElementById('login-err');
+  err.classList.add('d-none');
+  if(!slug||!pw){err.textContent='Vul alle velden in';err.classList.remove('d-none');return;}
+  try{
+    const r = await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,password:pw})});
+    const d = await r.json();
+    if(!r.ok){err.textContent=d.detail||'Inloggen mislukt';err.classList.remove('d-none');return;}
+    TOKEN = d.token||d.access_token;
+    SLUG  = slug;
+    localStorage.setItem('sf_loc_token',TOKEN);
+    localStorage.setItem('sf_loc_slug',SLUG);
+    initApp();
+  }catch(e){err.textContent='Fout: '+e.message;err.classList.remove('d-none');}
+}
+
+async function initApp(){
+  document.getElementById('login-wrap').style.display='none';
+  document.getElementById('main-app').style.display='block';
+  document.getElementById('logout-btn').style.display='';
+  document.getElementById('hdr-store').textContent=SLUG;
+  qtyModal_ = new bootstrap.Modal(document.getElementById('qtyModal'));
+  await Promise.all([loadZones(),loadProds(),loadMarkers()]);
+  showPage('step1');
+}
+
+async function loadZones(){
+  try{
+    zones = await (await fetch(API+'/api/zones/',{headers:H()})).json();
+    const sel = document.getElementById('inp-zone');
+    sel.innerHTML='<option value="">-- Geen zone --</option>'+zones.map(z=>`<option value="${z.id}">${z.name}</option>`).join('');
+  }catch(e){console.error(e);}
+}
+async function loadProds(){
+  try{ allProds = await (await fetch(API+'/api/products/',{headers:H()})).json(); }catch(e){console.error(e);}
+}
+async function loadMarkers(){
+  try{ allMarkers = await (await fetch(API+'/api/markers/',{headers:H()})).json(); }catch(e){console.error(e);}
+}
+
+function selType(t){
+  selType_=t;
+  ['shop','garage','home'].forEach(x=>document.getElementById('type-'+x).classList.toggle('selected',x===t));
+}
+
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function goStep1(){ showPage('step1'); }
+
+function goStep2(){
+  const num=parseInt(document.getElementById('inp-num').value);
+  if(!num||num<1||num>999){alert('Voer een geldig markernummer in (1-999)');return;}
+  document.getElementById('lbl-mnum').textContent=num;
+  renderMap();
+  showPage('step2');
+}
+
+function goStep3(){ renderLinked(); showPage('step3'); }
+
+function renderMap(){
+  const COLS=6,ROWS=8;
+  const zl=document.getElementById('layer-zones');
+  zl.innerHTML='';
+  zones.forEach(z=>{
+    const x=(z.grid_x||0)/COLS*100, y=(z.grid_y||0)/ROWS*100;
+    const w=(z.grid_w||2)/COLS*100, h=(z.grid_h||2)/ROWS*100;
+    const d=document.createElement('div');
+    d.className='map-zone';
+    d.style.cssText=`left:${x}%;top:${y}%;width:${w}%;height:${h}%;background:${z.color||'#3B82F6'}`;
+    d.textContent=z.name;
+    zl.appendChild(d);
+  });
+  const ml=document.getElementById('layer-markers');
+  ml.innerHTML='';
+  const curNum=parseInt(document.getElementById('inp-num').value||'0');
+  allMarkers.filter(m=>m.marker_number!==curNum).forEach(m=>{
+    const d=document.createElement('div');
+    d.className='map-marker';
+    d.style.left=(m.x_pos*100)+'%';
+    d.style.top=(m.y_pos*100)+'%';
+    d.textContent=m.marker_number;
+    d.title=(m.label||'Marker '+m.marker_number);
+    ml.appendChild(d);
+  });
+  refreshPin();
+}
+
+function refreshPin(){
+  const pin=document.getElementById('pin-current');
+  if(posSet){
+    pin.style.display='flex';
+    pin.style.left=(posX*100)+'%';
+    pin.style.top=(posY*100)+'%';
+    pin.textContent=document.getElementById('inp-num').value||'?';
+  }else{
+    pin.style.display='none';
+  }
+}
+
+function onMapClick(e){
+  const c=document.getElementById('map-canvas');
+  const r=c.getBoundingClientRect();
+  posX=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  posY=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+  posSet=true;
+  document.getElementById('pos-info').textContent=`Positie: ${Math.round(posX*100)}% links, ${Math.round(posY*100)}% boven`;
+  refreshPin();
+}
+
+function searchProds(){
+  const q=document.getElementById('prod-search').value.toLowerCase().trim();
+  const el=document.getElementById('search-results');
+  if(!q){el.innerHTML='';return;}
+  const res=allProds.filter(p=>p.name.toLowerCase().includes(q)||(p.barcode||'').includes(q)).slice(0,8);
+  if(!res.length){el.innerHTML='<div class="text-muted small py-2 text-center">Geen producten gevonden</div>';return;}
+  el.innerHTML=res.map(p=>`
+    <div class="product-search-item" onclick="addProd(${p.id})">
+      <i class="bi bi-box-seam text-primary"></i>
+      <div class="flex-fill"><div class="fw-semibold" style="font-size:.9rem">${p.name}</div>
+      <div class="text-muted" style="font-size:.75rem">${p.zone_name||'Geen zone'}${p.aisle?' · Gang '+p.aisle:''}</div></div>
+      <i class="bi bi-plus-circle text-success"></i>
+    </div>`).join('');
+}
+
+function addProd(id){
+  if(linked.find(l=>l.prod.id===id)){alert('Al gekoppeld');return;}
+  pendProd=allProds.find(p=>p.id===id);
+  document.getElementById('qty-input').value='';
+  qtyModal_.show();
+}
+
+function cancelQty(){ qtyModal_.hide(); pendProd=null; }
+
+function confirmQty(){
+  if(!pendProd)return;
+  linked.push({prod:pendProd,qty:document.getElementById('qty-input').value.trim()});
+  pendProd=null;
+  qtyModal_.hide();
+  renderLinked();
+  document.getElementById('prod-search').value='';
+  document.getElementById('search-results').innerHTML='';
+}
+
+function removeProd(i){ linked.splice(i,1); renderLinked(); }
+
+function renderLinked(){
+  const el=document.getElementById('linked-list');
+  if(!linked.length){el.innerHTML='<div class="text-muted small text-center py-2">Nog geen producten</div>';return;}
+  el.innerHTML=linked.map((l,i)=>`
+    <div class="linked-product">
+      <div><div class="fw-semibold" style="font-size:.9rem">${l.prod.name}</div>
+      ${l.qty?`<div class="text-muted" style="font-size:.75rem"><i class="bi bi-info-circle me-1"></i>${l.qty}</div>`:''}
+      </div>
+      <button class="btn btn-sm btn-outline-danger" onclick="removeProd(${i})"><i class="bi bi-trash"></i></button>
+    </div>`).join('');
+}
+
+async function doSave(){
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true; btn.textContent='Opslaan...';
+  const num=parseInt(document.getElementById('inp-num').value);
+  const body={
+    marker_number:num,
+    label:document.getElementById('inp-label').value.trim(),
+    x_pos:posSet?posX:0.5,
+    y_pos:posSet?posY:0.5,
+    zone_id:document.getElementById('inp-zone').value?parseInt(document.getElementById('inp-zone').value):null,
+    location_type:selType_,
+    notes:document.getElementById('inp-notes').value.trim()
+  };
+  try{
+    let mid=editId;
+    if(editId){
+      const r=await fetch(API+`/api/markers/${editId}`,{method:'PUT',headers:H(),body:JSON.stringify(body)});
+      if(!r.ok){const e=await r.json();throw new Error(e.detail);}
+      const det=await (await fetch(API+`/api/markers/${editId}`,{headers:H()})).json();
+      for(const p of det.products||[]){
+        await fetch(API+`/api/markers/${editId}/products/${p.id}`,{method:'DELETE',headers:H()});
+      }
+    }else{
+      const r=await fetch(API+'/api/markers/',{method:'POST',headers:H(),body:JSON.stringify(body)});
+      if(!r.ok){const e=await r.json();throw new Error(e.detail);}
+      mid=(await r.json()).id;
+    }
+    for(const l of linked){
+      await fetch(API+`/api/markers/${mid}/products`,{method:'POST',headers:H(),body:JSON.stringify({product_id:l.prod.id,quantity_note:l.qty})});
+    }
+    document.getElementById('success-txt').textContent=`Marker #${num} opgeslagen met ${linked.length} product(en).`;
+    await loadMarkers();
+    showPage('success');
+  }catch(e){alert('Fout: '+e.message);}
+  finally{btn.disabled=false;btn.innerHTML='<i class="bi bi-check-circle me-2"></i>Opslaan';}
+}
+
+function startNew(){
+  editId=null; linked=[]; posSet=false; posX=0.5; posY=0.5;
+  document.getElementById('inp-num').value='';
+  document.getElementById('inp-label').value='';
+  document.getElementById('inp-notes').value='';
+  document.getElementById('inp-zone').value='';
+  selType('shop');
+  showPage('step1');
+}
+
+function goMarkersList(){
+  const el=document.getElementById('all-markers');
+  if(!allMarkers.length){el.innerHTML='<div class="text-muted text-center py-3">Geen markers</div>';showPage('markers-list');return;}
+  const icons={shop:'bi-shop',garage:'bi-house-gear',home:'bi-house-heart'};
+  el.innerHTML=allMarkers.map(m=>`
+    <div class="marker-row">
+      <div>
+        <div class="fw-semibold"><i class="bi ${icons[m.location_type]||'bi-geo-alt'} me-1"></i>#${m.marker_number} ${m.label||''}</div>
+        <div class="text-muted" style="font-size:.75rem">${m.zone_name||'Geen zone'} &middot; ${m.product_count||0} prod.</div>
+      </div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-outline-primary" onclick="editMarker(${m.id})"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="delMarker(${m.id})"><i class="bi bi-trash"></i></button>
+      </div>
+    </div>`).join('');
+  showPage('markers-list');
+}
+
+async function editMarker(id){
+  const m=allMarkers.find(x=>x.id===id);
+  if(!m)return;
+  editId=id;
+  linked=[];
+  posSet=true; posX=m.x_pos||0.5; posY=m.y_pos||0.5;
+  document.getElementById('inp-num').value=m.marker_number;
+  document.getElementById('inp-label').value=m.label||'';
+  document.getElementById('inp-notes').value=m.notes||'';
+  document.getElementById('inp-zone').value=m.zone_id||'';
+  selType(m.location_type||'shop');
+  // Load products for this marker
+  try{
+    const det=await (await fetch(API+`/api/markers/${id}`,{headers:H()})).json();
+    linked=(det.products||[]).map(p=>({prod:{id:p.id,name:p.name,zone_name:p.zone_name,aisle:p.aisle},qty:p.quantity_note||''}));
+  }catch(e){}
+  showPage('step1');
+}
+
+async function delMarker(id){
+  if(!confirm('Marker verwijderen?'))return;
+  await fetch(API+`/api/markers/${id}`,{method:'DELETE',headers:H()});
+  await loadMarkers();
+  goMarkersList();
+}
+
+function logout(){
+  localStorage.removeItem('sf_loc_token');
+  localStorage.removeItem('sf_loc_slug');
+  location.reload();
+}
+
+// Auto-login if token exists
+if(TOKEN){
+  initApp();
+}
+</script>
+</body>
+</html>
