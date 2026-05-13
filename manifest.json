@@ -1,0 +1,20 @@
+{
+  "module": "ShopFlow",
+  "version": "1.1.0",
+  "previous_version": "1.0.0",
+  "suite": "WishFlow",
+  "description": "Store Navigation & AI Repair Guide Platform - v1.1.0",
+  "author": "Johan - WishFlow Suite",
+  "date": "2026-04-05",
+  "new_in_v110": [
+    "CSV bulk import",
+    "QR code generator per zone",
+    "Analytics dashboard + trend grafiek",
+    "Catalogus gezondheidscore",
+    "Gemiste producten tracking",
+    "White-label branding per winkel",
+    "NL/FR taalondersteuning"
+  ],
+  "health_endpoint": "/health",
+  "rollback_to": "1.0.0"
+}
